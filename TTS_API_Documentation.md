@@ -18,21 +18,21 @@ CosyVoice TTS API 是一个高性能的文本转语音服务，提供OpenAI兼�
 ### 启动服务
 
 ```bash
-# 启动TTS服务（默认端口50000）
-python openai_server.py --port 50000 --host 0.0.0.0
+# 启动TTS服务（默认端口50003）
+python openai_server.py --port 50003 --host 0.0.0.0
 
 # 自定义模型路径
-python openai_server.py --port 50000 --model_dir /path/to/your/model
+python openai_server.py --port 50003 --model_dir /path/to/your/model
 ```
 
 ### 检查服务状态
 
 ```bash
 # 获取服务信息
-curl http://localhost:50000/v1/tts/info
+curl http://172.21.8.46:50003/v1/tts/info
 
 # 获取可用模型
-curl http://localhost:50000/v1/models
+curl http://172.21.8.46:50003/v1/models
 ```
 
 ## 🔌 API接口
@@ -69,7 +69,7 @@ curl http://localhost:50000/v1/models
 
 ```bash
 # 基本合成
-curl -X POST "http://localhost:50000/v1/audio/speech" \
+curl -X POST "http://172.21.8.46:50003/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -d '{
     "input": "你好，欢迎使用CosyVoice文本转语音服务！",
@@ -80,7 +80,7 @@ curl -X POST "http://localhost:50000/v1/audio/speech" \
   --output output.wav
 
 # 英文合成
-curl -X POST "http://localhost:50000/v1/audio/speech" \
+curl -X POST "http://localhost:50003/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -d '{
     "input": "Hello, welcome to CosyVoice text-to-speech service!",
@@ -97,7 +97,7 @@ curl -X POST "http://localhost:50000/v1/audio/speech" \
 import requests
 
 def synthesize_speech(text, voice="中文女", format="wav", speed=1.0):
-    url = "http://localhost:50000/v1/audio/speech"
+    url = "http://172.21.8.46:50003/v1/audio/speech"
     data = {
         "input": text,
         "voice": voice,
@@ -126,7 +126,7 @@ synthesize_speech("今天天气真不错！", voice="中文女", format="wav")
 
 WebSocket API支持流式文本输入和实时音频输出，适合实时对话、直播等场景。
 
-**连接URL**: `ws://localhost:50000/ws/v1/tts`
+**连接URL**: `ws://172.21.8.46:50003/ws/v1/tts`
 
 #### 消息格式
 
@@ -339,7 +339,7 @@ python websocket_tts_demo.py --text "你好，这是一个测试。"
 # 完整参数
 python websocket_tts_demo.py \
     --host localhost \
-    --port 50000 \
+    --port 50003 \
     --text "春天来了，花儿开了。小鸟在枝头歌唱。" \
     --voice "中文女" \
     --speed 1.2 \
@@ -449,7 +449,7 @@ import websockets
 import json
 
 async def streaming_tts():
-    uri = "ws://localhost:50000/ws/v1/tts"
+    uri = "ws://localhost:50003/ws/v1/tts"
 
     async with websockets.connect(uri) as websocket:
         # 1. 开始会话
@@ -494,7 +494,7 @@ def safe_tts_request(text, max_retries=3):
     for attempt in range(max_retries):
         try:
             response = requests.post(
-                "http://localhost:50000/v1/audio/speech",
+                "http://localhost:50003/v1/audio/speech",
                 json={"input": text, "voice": "中文女"},
                 timeout=30
             )
@@ -529,13 +529,13 @@ def safe_tts_request(text, max_retries=3):
 **解决**:
 ```bash
 # 检查服务是否启动
-curl http://localhost:50000/v1/tts/info
+curl http://localhost:50003/v1/tts/info
 
 # 检查端口是否正确
-netstat -an | grep 50000
+netstat -an | grep 50003
 
 # 重启服务
-python openai_server.py --port 50000
+python openai_server.py --port 50003
 ```
 
 #### 2. 音频质量差
@@ -646,3 +646,16 @@ async def process_text_with_limit(text):
     async with semaphore:
         return await synthesize_speech(text)
 ```
+
+## 📞 技术支持
+
+如有问题或建议，请通过以下方式联系：
+
+- **GitHub Issues**: [项目地址](https://github.com/your-repo/cosyvoice-tts)
+- **邮箱**: support@your-domain.com
+- **文档版本**: v1.0
+- **最后更新**: 2026-01-22
+
+---
+
+**注意**: 本文档基于CosyVoice TTS服务v1.0版本编写，使用前请确保服务版本匹配。
