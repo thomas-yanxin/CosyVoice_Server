@@ -369,9 +369,9 @@ def split_text_by_sentence(text):
 
 async def main():
     parser = argparse.ArgumentParser(description="WebSocket Streaming TTS Client for CosyVoice")
-    parser.add_argument("--host", default="172.21.8.46", help="Server host")
-    parser.add_argument("--port", type=int, default=50003, help="Server port")
-    parser.add_argument("--voice", default="voice_1", help="Voice name")
+    parser.add_argument("--host", default="localhost", help="Server host")
+    parser.add_argument("--port", type=int, default=50000, help="Server port")
+    parser.add_argument("--voice", default="中文女", help="Voice name")
     parser.add_argument("--speed", type=float, default=1.0, help="Speech speed (0.5-2.0)")
     parser.add_argument("--pitch-rate", type=int, default=0, help="Pitch rate (-100 to 100)")
     parser.add_argument("--volume", type=int, default=50, help="Volume (0 to 100)")

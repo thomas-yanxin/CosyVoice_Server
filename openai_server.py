@@ -21,14 +21,25 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(ROOT_DIR)
 sys.path.append(os.path.join(ROOT_DIR, "third_party", "Matcha-TTS"))
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("openai_server")
+
 try:
     from cosyvoice.cli.cosyvoice import AutoModel
 except ImportError as e:
     print(f"Error importing CosyVoice: {e}")
     sys.exit(1)
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("openai_server")
+# 导入音频速度处理器
+try:
+    from audio_speed_processor import AudioSpeedProcessor
+
+    SPEED_PROCESSOR_AVAILABLE = True
+    logger.info("Audio speed processor loaded successfully")
+except ImportError:
+    SPEED_PROCESSOR_AVAILABLE = False
+    logger.warning("Audio speed processor not available - speed parameter may not work")
+
 
 app = FastAPI(title="CosyVoice OpenAI API")
 
@@ -253,27 +264,67 @@ async def _stream_tts_audio(
 
     def producer_thread():
         try:
+            # 检查是否需要速度调整
+            need_speed_adjustment = (
+                SPEED_PROCESSOR_AVAILABLE
+                and abs(speed - 1.0) > 0.01  # 只有当速度明显不是1.0时才调整
+            )
+
+            if need_speed_adjustment:
+                logger.info(f"Applying audio speed adjustment: {speed}x")
+
+            # 调用CosyVoice进行推理 (不传递speed参数，由后处理器处理)
             if use_zero_shot:
                 generator = cosyvoice.inference_zero_shot(
-                    text, prompt_text, prompt_wav, stream=True, speed=speed
+                    text, prompt_text, prompt_wav, stream=True
                 )
             else:
                 generator = cosyvoice.inference_sft(
-                    text, spk_id, stream=True, speed=speed
+                    text, spk_id, stream=True
                 )
 
-            for i in generator:
-                raw_data = (
-                    (i["tts_speech"].numpy() * (2**15)).astype(np.int16).tobytes()
+            # 如果需要速度调整，使用我们的处理器包装原始生成器
+            if need_speed_adjustment:
+
+                def audio_generator():
+                    for i in generator:
+                        raw_data = (
+                            (i["tts_speech"].numpy() * (2**15))
+                            .astype(np.int16)
+                            .tobytes()
+                        )
+                        yield raw_data
+
+                # 使用速度处理器包装生成器
+                speed_adjusted_generator = (
+                    AudioSpeedProcessor.create_speed_aware_generator(
+                        audio_generator(), speed, cosyvoice.sample_rate
+                    )
                 )
-                if ffmpeg_proc:
-                    try:
-                        ffmpeg_proc.stdin.write(raw_data)
-                        ffmpeg_proc.stdin.flush()
-                    except (BrokenPipeError, OSError):
-                        break
-                else:
-                    loop.call_soon_threadsafe(queue.put_nowait, raw_data)
+
+                for processed_chunk in speed_adjusted_generator:
+                    if ffmpeg_proc:
+                        try:
+                            ffmpeg_proc.stdin.write(processed_chunk)
+                            ffmpeg_proc.stdin.flush()
+                        except (BrokenPipeError, OSError):
+                            break
+                    else:
+                        loop.call_soon_threadsafe(queue.put_nowait, processed_chunk)
+            else:
+                # 原始处理逻辑（无速度调整）
+                for i in generator:
+                    raw_data = (
+                        (i["tts_speech"].numpy() * (2**15)).astype(np.int16).tobytes()
+                    )
+                    if ffmpeg_proc:
+                        try:
+                            ffmpeg_proc.stdin.write(raw_data)
+                            ffmpeg_proc.stdin.flush()
+                        except (BrokenPipeError, OSError):
+                            break
+                    else:
+                        loop.call_soon_threadsafe(queue.put_nowait, raw_data)
 
             if ffmpeg_proc:
                 ffmpeg_proc.stdin.close()
@@ -846,7 +897,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=50003)
     parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--model_dir", type=str)
+    parser.add_argument(
+        "--model_dir",
+        type=str,
+    )
     args = parser.parse_args()
 
     MODEL_DIR = args.model_dir
