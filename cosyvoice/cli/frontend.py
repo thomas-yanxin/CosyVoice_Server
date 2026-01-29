@@ -93,8 +93,8 @@ class CosyVoiceFrontEnd:
                 yield text_token[:, i: i + 1]
 
     def _extract_speech_token(self, prompt_wav):
-        speech = load_wav(prompt_wav, 16000)
-        assert speech.shape[1] / 16000 <= 30, 'do not support extract speech token for audio longer than 30s'
+        speech = load_wav(prompt_wav, 24000)
+        assert speech.shape[1] / 24000 <= 30, 'do not support extract speech token for audio longer than 30s'
         feat = whisper.log_mel_spectrogram(speech, n_mels=128)
         speech_token = self.speech_tokenizer_session.run(None,
                                                          {self.speech_tokenizer_session.get_inputs()[0].name:
@@ -106,11 +106,11 @@ class CosyVoiceFrontEnd:
         return speech_token, speech_token_len
 
     def _extract_spk_embedding(self, prompt_wav):
-        speech = load_wav(prompt_wav, 16000)
+        speech = load_wav(prompt_wav, 24000)
         feat = kaldi.fbank(speech,
                            num_mel_bins=80,
                            dither=0,
-                           sample_frequency=16000)
+                           sample_frequency=24000)
         feat = feat - feat.mean(dim=0, keepdim=True)
         embedding = self.campplus_session.run(None,
                                               {self.campplus_session.get_inputs()[0].name: feat.unsqueeze(dim=0).cpu().numpy()})[0].flatten().tolist()

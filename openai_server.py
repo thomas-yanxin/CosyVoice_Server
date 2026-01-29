@@ -55,7 +55,7 @@ app.add_middleware(
 cosyvoice = None
 MODEL_DIR = "pretrained_models/Fun-CosyVoice3-0.5B"
 DEFAULT_PROMPT_WAV = "asset/zero_shot_prompt.wav"
-DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呦。"
+DEFAULT_PROMPT_TEXT = "You are a helpful assistant.<|endofprompt|>希望你以后能够做的比我还好呦。"
 
 # CosyVoice API Limits (based on Aliyun specifications)
 MAX_SINGLE_REQUEST_CHARS = 10000  # 单次合成不超过1万字符
@@ -86,11 +86,11 @@ VOICE_MAP = {
         "wav": DEFAULT_PROMPT_WAV,
     },
     "russian": {
-        "text": "Всем привет, дорогие друзья! Сейчас 6.20 и мы с вами успели. Сегодня мы с вами встречаем восход солнца.",
+        "text": "You are a helpful assistant.<|endofprompt|>Всем привет, дорогие друзья! Сейчас 6.20 и мы с вами успели. Сегодня мы с вами встречаем восход солнца.",
         "wav": "asset/russian_prompt.wav",
     },
     "english": {
-        "text": "And then later on, fully acquiring that company. So keeping management in line, interest in line with the asset that's coming into the family is a reason why sometimes we don't buy the whole thing.",
+        "text": "You are a helpful assistant.<|endofprompt|>And then later on, fully acquiring that company. So keeping management in line, interest in line with the asset that's coming into the family is a reason why sometimes we don't buy the whole thing.",
         "wav": "asset/cross_lingual_prompt.wav",
     },
 }
@@ -373,7 +373,7 @@ async def startup_event():
             )
         else:
             cosyvoice = AutoModel(
-                model_dir=MODEL_DIR, load_trt=True, load_vllm=True, fp16=True
+                model_dir=MODEL_DIR, load_trt=True, load_vllm=True, fp16=False
             )
             logger.info(f"Model loaded. Sample rate: {cosyvoice.sample_rate}")
             available_spks = cosyvoice.list_available_spks()
